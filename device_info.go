@@ -4,12 +4,13 @@ import (
 	"bufio"
 	"strings"
 
-	"github.com/yosemite-open/go-adb/internal/errors"
+	"github.com/thinkhy/go-adb/internal/errors"
 )
 
 type DeviceInfo struct {
 	// Always set.
 	Serial string
+	Status string
 
 	// Product, device, and model are not set in the short form.
 	Product    string
@@ -25,13 +26,14 @@ func (d *DeviceInfo) IsUsb() bool {
 	return d.Usb != ""
 }
 
-func newDevice(serial string, attrs map[string]string) (*DeviceInfo, error) {
+func newDevice(serial string, status string, attrs map[string]string) (*DeviceInfo, error) {
 	if serial == "" {
 		return nil, errors.AssertionErrorf("device serial cannot be blank")
 	}
 
 	return &DeviceInfo{
 		Serial:     serial,
+		Status:     status,
 		Product:    attrs["product"],
 		Model:      attrs["model"],
 		DeviceInfo: attrs["device"],
@@ -61,7 +63,7 @@ func parseDeviceShort(line string) (*DeviceInfo, error) {
 			"malformed device line, expected 2 fields but found %d", len(fields))
 	}
 
-	return newDevice(fields[0], map[string]string{})
+	return newDevice(fields[0], fields[1], map[string]string{})
 }
 
 func parseDeviceLong(line string) (*DeviceInfo, error) {
@@ -72,7 +74,7 @@ func parseDeviceLong(line string) (*DeviceInfo, error) {
 	}
 
 	attrs := parseDeviceAttributes(fields[2:])
-	return newDevice(fields[0], attrs)
+	return newDevice(fields[0], fields[1], attrs)
 }
 
 func parseDeviceAttributes(fields []string) map[string]string {

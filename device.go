@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/yosemite-open/go-adb/internal/errors"
-	"github.com/yosemite-open/go-adb/wire"
+	"github.com/thinkhy/go-adb/internal/errors"
+	"github.com/thinkhy/go-adb/wire"
 )
 
 // MtimeOfClose should be passed to OpenWrite to set the file modification time to the time the Close
@@ -211,6 +211,7 @@ func (c *Device) RunCommand(cmd string, args ...string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	defer conn.Close()
 	resp, err := conn.ReadUntilEof()
 	if err != nil {
 		return "", wrapClientError(err, c, "RunCommand")

@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/yosemite-open/go-adb/internal/errors"
+	"github.com/thinkhy/go-adb/internal/errors"
 )
 
 type SyncSender interface {
