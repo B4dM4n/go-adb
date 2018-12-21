@@ -3,8 +3,8 @@ package adb
 import (
 	"strconv"
 
-	"github.com/yosemite-open/go-adb/internal/errors"
-	"github.com/yosemite-open/go-adb/wire"
+	"github.com/thinkhy/go-adb/internal/errors"
+	"github.com/thinkhy/go-adb/wire"
 )
 
 /*
@@ -131,6 +131,26 @@ func (c *Adb) ListDevices() ([]*DeviceInfo, error) {
 		return nil, wrapClientError(err, c, "ListDevices")
 	}
 	return devices, nil
+}
+
+func (c *Adb) ListDevicesInfo() ([]string, []string, error) {
+	resp, err := roundTripSingleResponse(c.server, "host:devices")
+	if err != nil {
+		return nil, nil, wrapClientError(err, c, "ListDeviceSerials")
+	}
+
+	devices, err := parseDeviceList(string(resp), parseDeviceShort)
+	if err != nil {
+		return nil, nil, wrapClientError(err, c, "ListDeviceSerials")
+	}
+
+	serials := make([]string, len(devices))
+	status := make([]string, len(devices))
+	for i, dev := range devices {
+		serials[i] = dev.Serial
+		status[i] = dev.Status
+	}
+	return serials, status, nil
 }
 
 func (c *Adb) parseServerVersion(versionRaw []byte) (int, error) {
