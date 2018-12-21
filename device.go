@@ -211,6 +211,7 @@ func (c *Device) RunCommand(cmd string, args ...string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	defer conn.Close()
 	resp, err := conn.ReadUntilEof()
 	if err != nil {
 		return "", wrapClientError(err, c, "RunCommand")
