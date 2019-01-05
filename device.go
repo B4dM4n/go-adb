@@ -211,6 +211,7 @@ func (c *Device) RunCommand(cmd string, args ...string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+
 	defer conn.Close()
 	resp, err := conn.ReadUntilEof()
 	if err != nil {
@@ -246,6 +247,47 @@ func (c *Device) OpenCommand(cmd string, args ...string) (conn *wire.Conn, err e
 	if _, err = conn.ReadStatus(req); err != nil {
 		return nil, wrapClientError(err, c, "Command")
 	}
+	return conn, nil
+}
+
+func (c *Device) RunCommandInContext(conn *wire.Conn, cmd string, args ...string) (*wire.Conn, string, error) {
+	conn, err := c.OpenCmdInContext(conn, cmd, args...)
+	if err != nil {
+		return nil, "", err
+	}
+
+	resp, err := conn.ReadUntilEof()
+	if err != nil {
+		return nil, "", wrapClientError(err, c, "RunCommand")
+	}
+	outStr := strings.Replace(string(resp), "\r\n", "\n", -1)
+	return conn, outStr, nil
+}
+
+func (c *Device) OpenCmdInContext(conn *wire.Conn, cmd string, args ...string) (*wire.Conn, error) {
+	cmd, err := prepareCommandLine(cmd, args...)
+	if err != nil {
+		return nil, wrapClientError(err, c, "RunCommand")
+	}
+	if conn == nil {
+		conn, err = c.dialDevice()
+	}
+	if err != nil {
+		return nil, wrapClientError(err, c, "RunCommand")
+	}
+
+	req := fmt.Sprintf("shell:%s", cmd)
+
+	// Shell responses are special, they don't include a length header.
+	// We read until the stream is closed.
+	// So, we can't use conn.RoundTripSingleResponse.
+	if err = conn.SendMessage([]byte(req)); err != nil {
+		return nil, wrapClientError(err, c, "Command")
+	}
+	if _, err = conn.ReadStatus(req); err != nil {
+		return nil, wrapClientError(err, c, "Command")
+	}
+
 	return conn, nil
 }
 
@@ -386,4 +428,58 @@ func prepareCommandLine(cmd string, args ...string) (string, error) {
 	}
 
 	return cmd, nil
+}
+
+func (c *Device) Push(localPath, remotePath string) int64 {
+	if remotePath == "" {
+		return 1
+	}
+
+	var (
+		localFile io.ReadCloser
+		size      int
+		perms     os.FileMode
+		mtime     time.Time
+	)
+	if localPath == "" {
+		localFile = os.Stdin
+		// 0 size will hide the progress bar.
+		perms = os.FileMode(0660)
+		mtime = MtimeOfClose
+	} else {
+		var err error
+		localFile, err = os.Open(localPath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error opening local file %s: %s\n", localPath, err)
+			return 1
+		}
+		info, err := os.Stat(localPath)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error reading local file %s: %s\n", localPath, err)
+			return 1
+		}
+		size = int(info.Size())
+		perms = info.Mode().Perm()
+		mtime = info.ModTime()
+	}
+	defer localFile.Close()
+
+	client := c
+	writer, err := client.OpenWrite(remotePath, perms, mtime)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error opening remote file %s: %s\n", remotePath, err)
+		return 1
+	}
+	defer writer.Close()
+
+	n, err := io.Copy(writer, localFile)
+	/*if err := copyWithProgressAndStats(writer, localFile, size, showProgress); err != nil {
+		fmt.Fprintln(os.Stderr, "error pushing file:", err)
+		return 1
+	}*/
+	if n == int64(size) {
+		return 0
+	} else {
+		return n
+	}
 }

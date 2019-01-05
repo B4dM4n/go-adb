@@ -15,12 +15,14 @@ const (
 	StateUnauthorized
 	StateDisconnected
 	StateOffline
+	StateConnecting
 	StateOnline
 )
 
 var deviceStateStrings = map[string]DeviceState{
 	"":             StateDisconnected,
 	"offline":      StateOffline,
+	"connecting":   StateConnecting,
 	"device":       StateOnline,
 	"unauthorized": StateUnauthorized,
 }
