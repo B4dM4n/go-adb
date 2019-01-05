@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -478,6 +479,56 @@ func (c *Device) Push(localPath, remotePath string) int64 {
 		return 1
 	}*/
 	if n == int64(size) {
+		return 0
+	} else {
+		return n
+	}
+}
+
+func (c *Device) Pull(remotePath, localPath string) int64 {
+	if remotePath == "" {
+		fmt.Fprintln(os.Stderr, "error: must specify remote file")
+		return 1
+	}
+
+	if localPath == "" {
+		localPath = filepath.Base(remotePath)
+	}
+
+	client := c
+	// client := client.Device(device)
+
+	info, err := client.Stat(remotePath)
+	if HasErrCode(err, ErrCode(FileNoExistError)) {
+		fmt.Fprintln(os.Stderr, "remote file does not exist:", remotePath)
+		return 1
+	} else if err != nil {
+		fmt.Fprintf(os.Stderr, "error reading remote file %s: %s\n", remotePath, err)
+		return 1
+	}
+
+	remoteFile, err := client.OpenRead(remotePath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error opening remote file %s: %s\n", remotePath, ErrorWithCauseChain(err))
+		return 1
+	}
+	defer remoteFile.Close()
+
+	var localFile io.WriteCloser
+	localFile, err = os.Create(localPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error opening local file %s: %s\n", localPath, err)
+		return 1
+	}
+	defer localFile.Close()
+
+	n, err := io.Copy(localFile, remoteFile)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "error pulling file:", err)
+		return 1
+	}
+
+	if n == int64(info.Size) {
 		return 0
 	} else {
 		return n
