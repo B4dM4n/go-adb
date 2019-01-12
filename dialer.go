@@ -20,6 +20,7 @@ type tcpDialer struct{}
 // The zero-value will connect to the default, localhost:5037.
 func (tcpDialer) Dial(address string) (*wire.Conn, error) {
 	netConn, err := net.Dial("tcp", address)
+
 	if err != nil {
 		return nil, errors.WrapErrorf(err, errors.ServerNotAvailable, "error dialing %s", address)
 	}

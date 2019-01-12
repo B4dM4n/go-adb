@@ -34,6 +34,18 @@ func NewWithConfig(config ServerConfig) (*Adb, error) {
 	return &Adb{server}, nil
 }
 
+func NewWithRemoteServer(host string, port int) (*Adb, error) {
+	config := ServerConfig{
+		Host: host,
+		Port: port,
+	}
+	server, err := newServer(config)
+	if err != nil {
+		return nil, err
+	}
+	return &Adb{server}, nil
+}
+
 // Dial establishes a connection with the adb server.
 func (c *Adb) Dial() (*wire.Conn, error) {
 	return c.server.Dial()

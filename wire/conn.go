@@ -1,6 +1,8 @@
 package wire
 
-import "github.com/thinkhy/go-adb/internal/errors"
+import (
+	"github.com/thinkhy/go-adb/internal/errors"
+)
 
 const (
 	// The official implementation of adb imposes an undocumented 255-byte limit
@@ -55,7 +57,8 @@ func (conn *Conn) RoundTripSingleResponse(req []byte) (resp []byte, err error) {
 		return nil, err
 	}
 
-	if _, err = conn.ReadStatus(string(req)); err != nil {
+	ret, err := conn.ReadStatus(string(req))
+	if err != nil {
 		return nil, err
 	}
 
