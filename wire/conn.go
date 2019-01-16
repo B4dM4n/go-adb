@@ -57,7 +57,7 @@ func (conn *Conn) RoundTripSingleResponse(req []byte) (resp []byte, err error) {
 		return nil, err
 	}
 
-	ret, err := conn.ReadStatus(string(req))
+	_, err = conn.ReadStatus(string(req))
 	if err != nil {
 		return nil, err
 	}
