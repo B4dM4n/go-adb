@@ -485,10 +485,10 @@ func (c *Device) Push(localPath, remotePath string) int64 {
 	}
 }
 
-func (c *Device) Pull(remotePath, localPath string) int64 {
+func (c *Device) Pull(remotePath, localPath string) (int64, error) {
 	if remotePath == "" {
 		fmt.Fprintln(os.Stderr, "error: must specify remote file")
-		return 1
+		return 0, fmt.Errorf("error: must specify remote file")
 	}
 
 	if localPath == "" {
@@ -500,17 +500,17 @@ func (c *Device) Pull(remotePath, localPath string) int64 {
 
 	info, err := client.Stat(remotePath)
 	if HasErrCode(err, ErrCode(FileNoExistError)) {
-		fmt.Fprintln(os.Stderr, "remote file does not exist:", remotePath)
-		return 1
+		// fmt.Fprintf(os.Stderr, "file %v does not exist on device ", remotePath)
+		return 0, err
 	} else if err != nil {
-		fmt.Fprintf(os.Stderr, "error reading remote file %s: %s\n", remotePath, err)
-		return 1
+		// fmt.Fprintf(os.Stderr, "error reading remote file %s: %s\n", remotePath, err)
+		return 0, err
 	}
 
 	remoteFile, err := client.OpenRead(remotePath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error opening remote file %s: %s\n", remotePath, ErrorWithCauseChain(err))
-		return 1
+		return 0, err
 	}
 	defer remoteFile.Close()
 
@@ -518,19 +518,19 @@ func (c *Device) Pull(remotePath, localPath string) int64 {
 	localFile, err = os.Create(localPath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "error opening local file %s: %s\n", localPath, err)
-		return 1
+		return 0, err
 	}
 	defer localFile.Close()
 
 	n, err := io.Copy(localFile, remoteFile)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, "error pulling file:", err)
-		return 1
+		return 0, err
 	}
 
 	if n == int64(info.Size) {
-		return 0
+		return int64(info.Size), nil
 	} else {
-		return n
+		return n, fmt.Errorf("error: file size: %v, pull size: %v", info.Size, n)
 	}
 }
