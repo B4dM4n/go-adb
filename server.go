@@ -1,9 +1,7 @@
 package adb
 
 import (
-	stderrors "errors"
 	"fmt"
-	"os"
 	"os/exec"
 	"strings"
 
@@ -89,9 +87,6 @@ func newServer(config ServerConfig) (server, error) {
 		}
 		config.PathToAdb = path
 	}
-	if err := config.fs.IsExecutableFile(config.PathToAdb); err != nil {
-		return nil, errors.WrapErrorf(err, errors.ServerNotAvailable, "invalid adb executable: %s", config.PathToAdb)
-	}
 
 	return &realServer{
 		config:  config,
@@ -129,25 +124,12 @@ type filesystem struct {
 	// Wraps exec.LookPath.
 	LookPath func(string) (string, error)
 
-	// Returns nil if path is a regular file and executable by the current user.
-	IsExecutableFile func(path string) error
-
 	// Wraps exec.Command().CombinedOutput()
 	CmdCombinedOutput func(name string, arg ...string) ([]byte, error)
 }
 
 var localFilesystem = &filesystem{
 	LookPath: exec.LookPath,
-	IsExecutableFile: func(path string) error {
-		info, err := os.Stat(path)
-		if err != nil {
-			return err
-		}
-		if !info.Mode().IsRegular() {
-			return stderrors.New("not a regular file")
-		}
-		return isExecutable(path)
-	},
 	CmdCombinedOutput: func(name string, arg ...string) ([]byte, error) {
 		return exec.Command(name, arg...).CombinedOutput()
 	},
