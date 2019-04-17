@@ -407,6 +407,10 @@ func (c *Device) dialDevice() (*wire.Conn, error) {
 	return conn, nil
 }
 
+func (c *Device) Dial() (*wire.Conn, error) {
+	return c.dialDevice()
+}
+
 // prepareCommandLine validates the command and argument strings, quotes
 // arguments if required, and joins them into a valid adb command string.
 func prepareCommandLine(cmd string, args ...string) (string, error) {
