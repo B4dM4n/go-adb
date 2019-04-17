@@ -10,7 +10,6 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
 	retryablehttp "github.com/hashicorp/go-retryablehttp"
@@ -73,7 +72,7 @@ func (c *Device) ListProcesses() (ps []Process, err error) {
 }
 
 // KillProcessByName return if killed success
-func (c *Device) KillProcessByName(name string, sig syscall.Signal) error {
+func (c *Device) KillProcessByName(name string, sig int) error {
 	ps, err := c.ListProcesses()
 	if err != nil {
 		return err
@@ -83,7 +82,7 @@ func (c *Device) KillProcessByName(name string, sig syscall.Signal) error {
 			continue
 		}
 		// log.Printf("kill %s with pid: %d", p.Name, p.Pid)
-		_, _, er := c.RunCommandWithExitCode("kill", "-"+strconv.Itoa(int(sig)), strconv.Itoa(p.Pid))
+		_, _, er := c.RunCommandWithExitCode("kill", "-"+strconv.Itoa(sig), strconv.Itoa(p.Pid))
 		if er != nil {
 			return er
 		}
